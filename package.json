@@ -1,0 +1,31 @@
+{
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.1",
+    "firebase-functions": "^7.0.5"
+  },
+  "name": "kid_manager",
+  "version": "1.0.0",
+  "description": "{\r   \"uid\": \"PARENT_UID\",\r   \"role\": \"parent\",",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bongbro1/kid_manager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bongbro1/kid_manager/issues"
+  },
+  "homepage": "https://github.com/bongbro1/kid_manager#readme"
+}

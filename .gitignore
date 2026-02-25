@@ -1,0 +1,66 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ
+*.iml
+*.ipr
+*.iws
+.idea/
+.env
+
+# VS Code (bật nếu không muốn commit)
+#.vscode/
+
+# Flutter / Dart
+.dart_tool/
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+/build/
+/coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Pods/
+
+# Windows
+windows/flutter/ephemeral/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Obfuscation & symbols
+app.*.symbols
+app.*.map.json
+
+# Environment
+.env
+.env.*
