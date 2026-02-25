@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kid_manager/views/parent/schedule/schedule_screen.dart';
+
 import '../models/schedule.dart';
 import '../repositories/schedule_repository.dart';
 import 'auth_vm.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ScheduleViewModel extends ChangeNotifier {
   final ScheduleRepository _repo;
   final AuthVM _authVM;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
 
   ScheduleViewModel(this._repo, this._authVM);
 
@@ -50,21 +47,21 @@ class ScheduleViewModel extends ChangeNotifier {
 
   /// chọn bé
   void setChild(String id) async {
-  selectedChildId = id;
+    selectedChildId = id;
 
-  // 🔥 Reset về ngày hiện tại
-  selectedDate = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-  );
+    // 🔥 Reset về ngày hiện tại
+    selectedDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+    focusedMonth = DateTime(selectedDate.year, selectedDate.month, 1);
 
-  // 🔥 Load lại dữ liệu tháng hiện tại
-  await loadMonth();
+    // 🔥 Load lại dữ liệu tháng hiện tại
+    await loadMonth();
 
-  notifyListeners();
-}
-
+    notifyListeners();
+  }
 
   /// chọn ngày
   void setDate(DateTime date) {
@@ -75,6 +72,7 @@ class ScheduleViewModel extends ChangeNotifier {
 
   /// bấm ← →
   void changeMonth(DateTime newDate) {
+    focusedMonth = DateTime(newDate.year, newDate.month, 1);
     selectedDate = DateTime(newDate.year, newDate.month, 1);
     loadMonth();
     notifyListeners();
@@ -129,22 +127,10 @@ class ScheduleViewModel extends ChangeNotifier {
     await loadMonth();
   }
 
-Future<void> deleteSchedule(String id) async {
-  try {
-    await _firestore
-        .collection('schedules')
-        .doc(id)
-        .delete();
-
-    // Xóa local list luôn để UI không phải chờ reload
-    schedules.removeWhere((e) => e.id == id);
-
-    notifyListeners();
-  } catch (e) {
-    rethrow; // QUAN TRỌNG
+  Future<void> deleteSchedule(String id) async {
+    await _repo.deleteSchedule(parentUid, id);
+    await loadMonth();
   }
-}
-
 
   // ======================
   // HELPERS
@@ -162,5 +148,4 @@ Future<void> deleteSchedule(String id) async {
   DateTime _normalize(DateTime d) {
     return DateTime(d.year, d.month, d.day);
   }
-
 }
