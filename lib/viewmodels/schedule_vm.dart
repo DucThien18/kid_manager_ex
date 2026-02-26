@@ -10,7 +10,6 @@ class ScheduleViewModel extends ChangeNotifier {
   final AuthVM _authVM;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-
   ScheduleViewModel(this._repo, this._authVM);
 
   // ======================
@@ -61,10 +60,7 @@ class ScheduleViewModel extends ChangeNotifier {
 
   // 🔥 Load lại dữ liệu tháng hiện tại
   await loadMonth();
-
-  notifyListeners();
 }
-
 
   /// chọn ngày
   void setDate(DateTime date) {
@@ -75,10 +71,10 @@ class ScheduleViewModel extends ChangeNotifier {
 
   /// bấm ← →
   void changeMonth(DateTime newDate) {
-    selectedDate = DateTime(newDate.year, newDate.month, 1);
-    loadMonth();
-    notifyListeners();
-  }
+  focusedMonth = DateTime(newDate.year, newDate.month, 1);
+  selectedDate = DateTime(newDate.year, newDate.month, 1);
+  loadMonth();
+}
 
   /// calendar dùng để vẽ dot
   bool hasSchedule(DateTime day) {
@@ -90,30 +86,30 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   Future<void> loadMonth() async {
-    if (selectedChildId == null) return;
+  if (selectedChildId == null) return;
 
-    try {
-      isLoading = true;
-      error = null;
-      notifyListeners();
+  try {
+    isLoading = true;
+    error = null;
+    notifyListeners();
 
-      final list = await _repo.getSchedulesByMonth(
-        parentUid: parentUid,
-        childId: selectedChildId!,
-        month: focusedMonth,
-      );
+    final list = await _repo.getSchedulesByMonth(
+      parentUid: parentUid,
+      childId: selectedChildId!,
+      month: focusedMonth,
+    );
 
-      monthSchedules = _groupByDay(list);
+    monthSchedules = _groupByDay(list);
 
-      // refresh list theo ngày đang chọn
-      setDate(selectedDate);
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
+    final key = _normalize(selectedDate);
+    schedules = monthSchedules[key] ?? [];
+  } catch (e) {
+    error = e.toString();
+  } finally {
+    isLoading = false;
+    notifyListeners();
   }
+}
 
   // ======================
   // CRUD
@@ -129,22 +125,23 @@ class ScheduleViewModel extends ChangeNotifier {
     await loadMonth();
   }
 
-Future<void> deleteSchedule(String id) async {
+  Future<void> deleteSchedule(String id) async {
   try {
-    await _firestore
-        .collection('schedules')
-        .doc(id)
-        .delete();
-
-    // Xóa local list luôn để UI không phải chờ reload
+    // optimistic UI
     schedules.removeWhere((e) => e.id == id);
-
+    for (final entry in monthSchedules.entries) {
+      entry.value.removeWhere((e) => e.id == id);
+    }
     notifyListeners();
+
+    await _repo.deleteSchedule(parentUid, id);
+
+    // đảm bảo dot + list khớp tuyệt đối với server
+    await loadMonth();
   } catch (e) {
-    rethrow; // QUAN TRỌNG
+    rethrow;
   }
 }
-
 
   // ======================
   // HELPERS

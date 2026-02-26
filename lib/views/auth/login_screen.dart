@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.didChangeDependencies();
 
     // LẤY SERVICE Ở ĐÂY (an toàn nhất)
-    _storage = context.read<StorageService>();
+    //_storage = context.read<StorageService>();
   }
 
   Future<void> _onLoginPressed() async {
