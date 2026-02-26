@@ -12,6 +12,8 @@ class ScheduleViewModel extends ChangeNotifier {
 
   ScheduleViewModel(this._repo, this._authVM);
 
+  int _loadToken = 0;
+
   // ======================
   // STATE
   // ======================
@@ -48,17 +50,13 @@ class ScheduleViewModel extends ChangeNotifier {
   // ======================
 
   /// chọn bé
-  void setChild(String id) async {
+  Future<void> setChild(String id) async {
   selectedChildId = id;
 
-  // 🔥 Reset về ngày hiện tại
-  selectedDate = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-  );
+  final now = DateTime.now();
+  selectedDate = _normalize(now);
+  focusedMonth = DateTime(now.year, now.month, 1);
 
-  // 🔥 Load lại dữ liệu tháng hiện tại
   await loadMonth();
 }
 
@@ -88,6 +86,8 @@ class ScheduleViewModel extends ChangeNotifier {
   Future<void> loadMonth() async {
   if (selectedChildId == null) return;
 
+  final token = ++_loadToken;
+
   try {
     isLoading = true;
     error = null;
@@ -99,13 +99,16 @@ class ScheduleViewModel extends ChangeNotifier {
       month: focusedMonth,
     );
 
-    monthSchedules = _groupByDay(list);
+    if (token != _loadToken) return;
 
+    monthSchedules = _groupByDay(list);
     final key = _normalize(selectedDate);
     schedules = monthSchedules[key] ?? [];
   } catch (e) {
+    if (token != _loadToken) return;
     error = e.toString();
   } finally {
+    if (token != _loadToken) return;
     isLoading = false;
     notifyListeners();
   }

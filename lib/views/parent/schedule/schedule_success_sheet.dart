@@ -46,8 +46,8 @@ class _ScheduleSuccessSheetState extends State<ScheduleSuccessSheet>
 
     _controller.forward();
 
-    /// Auto close sau 1.4s
-    _timer = Timer(const Duration(milliseconds: 1400), () {
+    /// Auto close sau 1s
+    _timer = Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop(true);
     });

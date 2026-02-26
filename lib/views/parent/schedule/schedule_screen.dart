@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:kid_manager/core/storage_keys.dart';
+import 'package:kid_manager/services/storage_service.dart';
 import 'package:provider/provider.dart';
+import 'package:kid_manager/models/app_user.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../core/app_text_styles.dart';
 import '../../../viewmodels/schedule_vm.dart';
+import '../../../viewmodels/user_vm.dart';
 import '../../../views/parent/schedule/add_schedule_sheet.dart';
 import '../../../widgets/parent/create_schedule_button.dart';
 import '../../../widgets/parent/schedule_calendar.dart';
 import '../../../widgets/parent/schedule_list.dart';
 
-class ScheduleScreen extends StatelessWidget {
+class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
+
+  @override
+  State<ScheduleScreen> createState() => _ScheduleScreenState();
+}
+
+class _ScheduleScreenState extends State<ScheduleScreen> {
+  bool _didInit = false;
 
   void _openAddScheduleSheet({
     required BuildContext context,
@@ -21,14 +32,18 @@ class ScheduleScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      // ignore: deprecated_member_use
       barrierColor: Colors.black.withOpacity(0.3),
       builder: (_) {
         return FractionallySizedBox(
           heightFactor: 0.75,
           child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: AddScheduleScreen(childId: childId, selectedDate: selectedDate),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: AddScheduleScreen(
+              childId: childId,
+              selectedDate: selectedDate,
+            ),
           ),
         );
       },
@@ -36,9 +51,37 @@ class ScheduleScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final vm = context.watch<ScheduleViewModel>();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInit) return;
+    _didInit = true;
 
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final userVm = context.read<UserVm>();
+      final storage = context.read<StorageService>();
+      final scheduleVm = context.read<ScheduleViewModel>();
+
+      final parentUid = storage.getString(StorageKeys.uid);
+      if (parentUid == null) return;
+
+      userVm.watchChildren(parentUid);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheduleVm = context.watch<ScheduleViewModel>();
+    final userVm = context.watch<UserVm>();
+
+    final List<AppUser> children = userVm.children;
+
+    // AUTO SELECT BÉ ĐẦU TIÊN
+    if (scheduleVm.selectedChildId == null && children.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        scheduleVm.setChild(children.first.uid);
+      });
+    }
+    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -47,26 +90,46 @@ class ScheduleScreen extends StatelessWidget {
           icon: const Icon(Icons.menu, color: AppColors.darkText),
           onPressed: () {},
         ),
-        title: const Text('Lịch trình', style: AppTextStyles.scheduleAppBarTitle),
+        title: const Text(
+          'Lịch trình',
+          style: AppTextStyles.scheduleAppBarTitle,
+        ),
         centerTitle: true,
+
+        // ✅ danh sách con thật
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: PopupMenuButton<String>(
-              onSelected: vm.setChild,
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'child_1', child: Text('Bé An')),
-                PopupMenuItem(value: 'child_2', child: Text('Bé Bình')),
-              ],
-              child: CircleAvatar(
-                radius: 18,
-                backgroundImage: AssetImage(
-                  vm.selectedChildId == 'child_2'
-                      ? 'assets/images/avt2.png'
-                      : 'assets/images/avt1.png',
-                ),
-              ),
-            ),
+            child: children.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Text('Chưa có bé'),
+                    ),
+                  )
+                : PopupMenuButton<String>(
+                    onSelected: (childUid) {
+                      scheduleVm.setChild(childUid);
+                      // nếu scheduleVm có load theo child/date thì gọi ở đây
+                      // scheduleVm.loadSchedules();
+                    },
+                    itemBuilder: (_) => children
+                        .map(
+                          (c) => PopupMenuItem(
+                            value: c.uid,
+                            child: Text(c.displayName ?? c.email ?? c.uid),
+                          ),
+                        )
+                        .toList(),
+                    child: CircleAvatar(
+                      radius: 18,
+                      // nếu bạn có avatarUrl thì dùng NetworkImage ở đây
+                      child: Text(
+                        _initialOf(children, scheduleVm.selectedChildId),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -77,13 +140,13 @@ class ScheduleScreen extends StatelessWidget {
           const Expanded(child: ScheduleList()),
           CreateScheduleButton(
             onTap: () {
-              final selectedChildId = vm.selectedChildId;
+              final selectedChildId = scheduleVm.selectedChildId;
               if (selectedChildId == null) return;
 
               _openAddScheduleSheet(
                 context: context,
                 childId: selectedChildId,
-                selectedDate: vm.selectedDate,
+                selectedDate: scheduleVm.selectedDate,
               );
             },
           ),
@@ -91,5 +154,20 @@ class ScheduleScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _initialOf(List<AppUser> children, String? selectedId) {
+    if (children.isEmpty) return '?';
+
+    final AppUser selected = selectedId == null
+        ? children.first
+        : children.firstWhere(
+            (c) => c.uid == selectedId,
+            orElse: () => children.first,
+          );
+
+    final name = (selected.displayName ?? selected.email ?? '').trim();
+    if (name.isEmpty) return 'B';
+    return name[0].toUpperCase();
   }
 }
